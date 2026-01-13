@@ -40,7 +40,12 @@ interface Analytics {
 const getAuthHeader = (): HeadersInit => {
     if (typeof window === 'undefined') return {};
     const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    if (!token) return {};
+
+    // Sanitize: Remove whitespace and newlines that cause "String did not match expected pattern"
+    const sanitizedToken = token.trim().replace(/[\n\r\s]/g, '');
+
+    return { Authorization: `Bearer ${sanitizedToken}` };
 };
 
 // Auth API
