@@ -64,16 +64,30 @@ export const authApi = {
     },
 
     login: async (email: string, password: string): Promise<AuthResponse> => {
-        const res = await fetch(`${API_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-        });
-        if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.message || 'Login failed');
+        try {
+            const res = await fetch(`${API_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const responseText = await res.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (jsonError) {
+                // If parsing fails, it's likely HTML (404/500)
+                console.error('API Error (Non-JSON response):', responseText);
+                throw new Error(`API Configuration Error: Received HTML instead of JSON. URL: ${API_URL}`);
+            }
+
+            if (!res.ok) {
+                throw new Error(data.message || 'Login failed');
+            }
+            return data;
+        } catch (error: any) {
+            throw error; // Re-throw to be caught by component
         }
-        return res.json();
     },
 
     getMe: async (): Promise<Omit<AuthResponse, 'token'>> => {
