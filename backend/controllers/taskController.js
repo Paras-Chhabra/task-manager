@@ -6,7 +6,7 @@ const Task = require('../models/Task');
 exports.getTasks = async (req, res) => {
     try {
         const { status, priority, dueDate, search, page = 1, limit = 10 } = req.query;
-        const query = {};
+        const query = { owner: req.user._id };
 
         if (status) query.status = status;
         if (priority) query.priority = priority;
@@ -44,6 +44,12 @@ exports.getTask = async (req, res) => {
         if (!task) {
             return res.status(404).json({ message: 'Task not found' });
         }
+
+        // Check ownership
+        if (task.owner._id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Not authorized to view this task' });
+        }
+
         res.json(task);
     } catch (error) {
         console.error(error);
@@ -137,9 +143,9 @@ exports.deleteTask = async (req, res) => {
 // @access  Private
 exports.getAnalytics = async (req, res) => {
     try {
-        const total = await Task.countDocuments();
-        const completed = await Task.countDocuments({ status: 'Done' });
-        const pending = await Task.countDocuments({ status: { $ne: 'Done' } });
+        const total = await Task.countDocuments({ owner: req.user._id });
+        const completed = await Task.countDocuments({ owner: req.user._id, status: 'Done' });
+        const pending = await Task.countDocuments({ owner: req.user._id, status: { $ne: 'Done' } });
 
         res.json({ total, completed, pending });
     } catch (error) {
